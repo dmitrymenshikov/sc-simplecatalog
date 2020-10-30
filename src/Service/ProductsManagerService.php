@@ -25,18 +25,21 @@ class ProductsManagerService
     private ProductRepository $productRepository;
     private CategoryRepository $categoryRepository;
     private $eventDispatcher;
+    private SendEmail $sendEmail;
 
     public function __construct(RequestStack $requestStack,
                                 ValidatorInterface $validator,
                                 EntityManagerInterface $entityManager,
                                 ProductRepository $productRepository,
-                                EventDispatcherInterface $eventDispatcher)
+                                EventDispatcherInterface $eventDispatcher,
+                                SendEmail $sendEmail)
     {
         $this->request = $requestStack->getCurrentRequest();
         $this->validator = $validator;
         $this->entityManager = $entityManager;
         $this->productRepository = $productRepository;
         $this->eventDispatcher = $eventDispatcher;
+        $this->sendEmail = $sendEmail;
 
         $npSubs = new NewProductSubscriber();
         $this->eventDispatcher->addListener('product.new', array($npSubs, 'onProductNew'));
@@ -64,7 +67,7 @@ class ProductsManagerService
             $this->productRepository->saveProduct($product);
             $this->entityManager->commit();
 
-            $event = new NewProductEvent($product);
+            $event = new NewProductEvent($product, $this->sendEmail);
             $this->eventDispatcher->dispatch($event, NewProductEvent::NAME);
 
             return $product;
