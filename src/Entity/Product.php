@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use App\Validator\CategoryIsset as CategoryIssetAssert;
+use App\Validator\MinPrice as MinPriceValidatorAssert;
 
 /**
  * @ORM\Entity(repositoryClass=ProductRepository::class)
@@ -26,14 +27,17 @@ class Product
     public $title;
 
     /**
-     * @ORM\Column(type="float")
-     */
-    public $price;
-
-    /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Category", inversedBy="products")
+     * @Assert\NotBlank
+     * @CategoryIssetAssert()
      */
     private $category;
+
+    /**
+     * @ORM\Column(type="float")
+     * @MinPriceValidatorAssert()
+     */
+    public $price;
 
     public function __construct()
     {

@@ -3,14 +3,18 @@
 namespace App\Service;
 
 use App\Entity\Product;
+use App\Event\NewProductEvent;
+use App\EventSubscriber\NewProductSubscriber;
 use App\Repository\CategoryRepository;
 use App\Repository\ProductRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Validator\Exception\InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class ProductsManagerService
 {
@@ -20,16 +24,22 @@ class ProductsManagerService
     private EntityManagerInterface $entityManager;
     private ProductRepository $productRepository;
     private CategoryRepository $categoryRepository;
+    private $eventDispatcher;
 
     public function __construct(RequestStack $requestStack,
                                 ValidatorInterface $validator,
                                 EntityManagerInterface $entityManager,
-                                ProductRepository $productRepository)
+                                ProductRepository $productRepository,
+                                EventDispatcherInterface $eventDispatcher)
     {
         $this->request = $requestStack->getCurrentRequest();
         $this->validator = $validator;
         $this->entityManager = $entityManager;
         $this->productRepository = $productRepository;
+        $this->eventDispatcher = $eventDispatcher;
+
+        $npSubs = new NewProductSubscriber();
+        $this->eventDispatcher->addListener('product.new', array($npSubs, 'onProductNew'));
     }
 
     public function loadProduct($id)
@@ -53,6 +63,9 @@ class ProductsManagerService
 
             $this->productRepository->saveProduct($product);
             $this->entityManager->commit();
+
+            $event = new NewProductEvent($product);
+            $this->eventDispatcher->dispatch($event, NewProductEvent::NAME);
 
             return $product;
         } catch (\Exception $e) {

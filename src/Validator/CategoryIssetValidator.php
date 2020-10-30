@@ -24,9 +24,14 @@ class CategoryIssetValidator extends ConstraintValidator
             return;
         }
 
+        if ($value instanceof Category) {
+            return;
+        }
+
         if (is_numeric($value) && ($category = $this->loadCategory($value)) && $category instanceof Category) {
             return;
         }
+
 
         $this->context->buildViolation($constraint->message)
             ->setParameter('{{ value }}', $value)
